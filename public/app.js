@@ -1,9 +1,9 @@
 // Stock Management System JavaScript
 
-// API Base URL - Production için değiştirilecek
+// API Base URL - Dinamik olarak ayarlanıyor
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
     ? '/api' 
-    : 'https://your-app-name.up.railway.app/api';
+    : '/api';
 let currentPage = 'dashboard';
 let categories = [];
 let products = [];
