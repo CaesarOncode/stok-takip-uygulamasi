@@ -13,7 +13,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">
+            <a class="navbar-brand" href="#" onclick="showPage('dashboard')" style="cursor: pointer;">
                 <img src="logo.svg" alt="Logo" class="logo-icon">
                 Restoranım
             </a>
@@ -71,7 +71,7 @@
             <!-- Stats Cards -->
             <div class="row mb-4">
                 <div class="col-md-4 mb-3">
-                    <div class="card bg-primary text-white">
+                    <div class="card bg-primary text-white" onclick="showProductsPage('all')" style="cursor: pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -86,7 +86,7 @@
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card bg-danger text-white">
+                    <div class="card bg-danger text-white" onclick="showProductsPage('out-of-stock')" style="cursor: pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -101,7 +101,7 @@
                     </div>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <div class="card bg-warning text-white">
+                    <div class="card bg-warning text-white" onclick="showProductsPage('critical')" style="cursor: pointer;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -194,9 +194,10 @@
                 <div class="col-md-3">
                     <select class="form-select" id="stock-status-filter" onchange="loadProducts()">
                         <option value="">Tüm Durumlar</option>
-                        <option value="normal">Normal</option>
-                        <option value="kritik">Kritik</option>
-                        <option value="tükendi">Tükendi</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Kritik">Kritik</option>
+                        <option value="Tükendi">Tükendi</option>
+                        <option value="Fazla">Fazla</option>
                     </select>
                 </div>
                 <div class="col-md-6">
@@ -375,7 +376,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="categoryColor" class="form-label">Renk</label>
-                            <input type="color" class="form-control form-control-color" id="categoryColor" value="#007bff">
+                            <input type="color" class="form-control form-control-color" id="categoryColor" value="#8b4513">
                         </div>
                     </form>
                 </div>

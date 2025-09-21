@@ -93,6 +93,15 @@ async function apiRequest(url, options = {}) {
 
 // Page navigation
 function showPage(pageName) {
+    // Close mobile navbar if open
+    const navbarCollapse = document.getElementById('navbarNav');
+    if (navbarCollapse && navbarCollapse.classList.contains('show')) {
+        const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+            toggle: false
+        });
+        bsCollapse.hide();
+    }
+    
     // Hide all pages
     document.querySelectorAll('.page-content').forEach(page => {
         page.style.display = 'none';
@@ -129,6 +138,28 @@ function showPage(pageName) {
     }
 }
 
+// Show products page with filter from dashboard cards
+function showProductsPage(filter = 'all') {
+    // Hide all pages
+    document.querySelectorAll('.page-content').forEach(page => {
+        page.style.display = 'none';
+    });
+    
+    // Show products page
+    document.getElementById('products-page').style.display = 'block';
+    
+    // Update navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    document.querySelector('[onclick="showPage(\'products\')"]').classList.add('active');
+    
+    currentPage = 'products';
+    
+    // Load products with filter
+    loadProductsWithFilter(filter);
+}
+
 // Dashboard functions
 async function loadDashboard() {
     try {
@@ -137,7 +168,6 @@ async function loadDashboard() {
         document.getElementById('total-products').textContent = summary.totalProducts;
         document.getElementById('out-of-stock').textContent = summary.outOfStock;
         document.getElementById('critical-stock').textContent = summary.criticalStock;
-        document.getElementById('total-value').textContent = '₺' + summary.totalValue.toLocaleString('tr-TR', {minimumFractionDigits: 2});
         
         // Load recent movements
         const movementsHtml = summary.recentMovements.map(movement => `
@@ -323,6 +353,63 @@ async function loadProducts() {
         
         const response = await apiRequest(url);
         products = response.products || response;
+
+// Load products with specific filter from dashboard cards
+async function loadProductsWithFilter(filter) {
+    try {
+        let url = '/products?';
+        
+        // Apply filter based on dashboard card clicked
+        switch(filter) {
+            case 'out-of-stock':
+                url = '/products/alerts/out-of-stock';
+                // Set the filter dropdown to match
+                document.getElementById('stock-status-filter').value = 'Tükendi';
+                break;
+            case 'critical':
+                url = '/products/alerts/critical';
+                // Set the filter dropdown to match
+                document.getElementById('stock-status-filter').value = 'Kritik';
+                break;
+            case 'all':
+            default:
+                // Clear filters for all products
+                document.getElementById('stock-status-filter').value = '';
+                document.getElementById('category-filter').value = '';
+                document.getElementById('search-input').value = '';
+                break;
+        }
+        
+        const response = await apiRequest(url);
+        products = response.products || response;
+        
+        const tableBody = document.getElementById('products-table');
+        const productsHtml = products.map(product => `
+            <tr>
+                <td>${product.name}</td>
+                <td>${product.category.name}</td>
+                <td>${product.currentStock} ${product.unit}</td>
+                <td>${product.minStock} ${product.unit}</td>
+                <td>${product.unit}</td>
+                <td><span class="stock-status stock-${product.stockStatus}">${product.stockStatus}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct('${product._id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${product._id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        
+        tableBody.innerHTML = productsHtml || '<tr><td colspan="7" class="text-center">Ürün bulunamadı</td></tr>';
+        
+        updateCategoryFilters();
+    } catch (error) {
+        console.error('Ürünler yüklenirken hata:', error);
+    }
+}
         
         const tableBody = document.getElementById('products-table');
         const productsHtml = products.map(product => `

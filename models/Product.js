@@ -72,11 +72,15 @@ const productSchema = new mongoose.Schema({
 
 // Virtual for stock status
 productSchema.virtual('stockStatus').get(function() {
-  if (this.currentStock <= 0) return 'tükendi';
-  if (this.currentStock <= this.minStock) return 'kritik';
-  if (this.currentStock >= this.maxStock) return 'fazla';
-  return 'normal';
+  if (this.currentStock <= 0) return 'Tükendi';
+  if (this.currentStock <= this.minStock) return 'Kritik';
+  if (this.currentStock >= this.maxStock) return 'Fazla';
+  return 'Normal';
 });
+
+// Ensure virtual fields are included in JSON output
+productSchema.set('toJSON', { virtuals: true });
+productSchema.set('toObject', { virtuals: true });
 
 // Update timestamp on save
 productSchema.pre('save', function(next) {
