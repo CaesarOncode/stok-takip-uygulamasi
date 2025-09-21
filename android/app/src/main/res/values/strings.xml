@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Stok Takip</string>
+    <string name="title_activity_main">Stok Takip</string>
+    <string name="package_name">com.example.stoktakip</string>
+    <string name="custom_url_scheme">com.example.stoktakip</string>
+</resources>
