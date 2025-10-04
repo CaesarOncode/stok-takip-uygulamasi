@@ -7,6 +7,11 @@ const productSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Ürün adı 100 karakterden fazla olamaz']
   },
+  restaurant: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Restaurant',
+    required: [true, 'Restoran referansı gereklidir']
+  },
   description: {
     type: String,
     trim: true,
@@ -53,7 +58,6 @@ const productSchema = new mongoose.Schema({
   barcode: {
     type: String,
     trim: true,
-    unique: true,
     sparse: true
   },
   isActive: {
@@ -93,5 +97,9 @@ productSchema.pre(/^find/, function(next) {
   this.populate('category');
   next();
 });
+
+// Compound unique indexes
+productSchema.index({ name: 1, restaurant: 1 }, { unique: true }); // Aynı restoranda aynı isimde ürün olamaz
+productSchema.index({ barcode: 1, restaurant: 1 }, { unique: true, sparse: true }); // Aynı restoranda aynı barkod olamaz
 
 module.exports = mongoose.model('Product', productSchema);

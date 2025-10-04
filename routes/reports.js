@@ -3,12 +3,13 @@ const router = express.Router();
 const Product = require('../models/Product');
 const StockMovement = require('../models/StockMovement');
 const Category = require('../models/Category');
+const { requireAuth } = require('../middleware/auth');
 
 // Kategori bazlı stok raporu
-router.get('/stock-by-category', async (req, res) => {
+router.get('/stock-by-category', requireAuth, async (req, res) => {
   try {
     const report = await Product.aggregate([
-      { $match: { isActive: true } },
+      { $match: { isActive: true, restaurant: req.restaurant._id } },
       {
         $lookup: {
           from: 'categories',
@@ -44,11 +45,11 @@ router.get('/stock-by-category', async (req, res) => {
 });
 
 // Stok hareket raporu
-router.get('/stock-movements', async (req, res) => {
+router.get('/stock-movements', requireAuth, async (req, res) => {
   try {
     const { startDate, endDate, type, category } = req.query;
     
-    let matchQuery = {};
+    let matchQuery = { restaurant: req.restaurant._id };
     
     // Tarih filtresi
     if (startDate || endDate) {
@@ -125,14 +126,14 @@ router.get('/stock-movements', async (req, res) => {
 });
 
 // En çok hareket eden ürünler
-router.get('/most-active-products', async (req, res) => {
+router.get('/most-active-products', requireAuth, async (req, res) => {
   try {
     const { days = 30 } = req.query;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
     const report = await StockMovement.aggregate([
-      { $match: { createdAt: { $gte: startDate } } },
+      { $match: { createdAt: { $gte: startDate }, restaurant: req.restaurant._id } },
       {
         $group: {
           _id: '$product',
@@ -188,7 +189,7 @@ router.get('/most-active-products', async (req, res) => {
 });
 
 // Günlük stok özeti
-router.get('/daily-summary', async (req, res) => {
+router.get('/daily-summary', requireAuth, async (req, res) => {
   try {
     const { days = 7 } = req.query;
     const endDate = new Date();
@@ -198,7 +199,8 @@ router.get('/daily-summary', async (req, res) => {
     const report = await StockMovement.aggregate([
       { 
         $match: { 
-          createdAt: { $gte: startDate, $lte: endDate }
+          createdAt: { $gte: startDate, $lte: endDate },
+          restaurant: req.restaurant._id
         }
       },
       {
@@ -235,10 +237,11 @@ router.get('/daily-summary', async (req, res) => {
 });
 
 // Düşük stok uyarı raporu
-router.get('/low-stock-alert', async (req, res) => {
+router.get('/low-stock-alert', requireAuth, async (req, res) => {
   try {
     const products = await Product.find({
       isActive: true,
+      restaurant: req.restaurant._id,
       $expr: { $lte: ['$currentStock', '$minStock'] }
     })
     .populate('category')
@@ -263,10 +266,10 @@ router.get('/low-stock-alert', async (req, res) => {
 });
 
 // Değer analizi raporu
-router.get('/value-analysis', async (req, res) => {
+router.get('/value-analysis', requireAuth, async (req, res) => {
   try {
     const totalValue = await Product.aggregate([
-      { $match: { isActive: true } },
+      { $match: { isActive: true, restaurant: req.restaurant._id } },
       {
         $group: {
           _id: null,
@@ -278,7 +281,7 @@ router.get('/value-analysis', async (req, res) => {
     ]);
 
     const categoryValues = await Product.aggregate([
-      { $match: { isActive: true } },
+      { $match: { isActive: true, restaurant: req.restaurant._id } },
       {
         $lookup: {
           from: 'categories',
@@ -301,7 +304,7 @@ router.get('/value-analysis', async (req, res) => {
       { $sort: { totalValue: -1 } }
     ]);
 
-    const topValueProducts = await Product.find({ isActive: true })
+    const topValueProducts = await Product.find({ isActive: true, restaurant: req.restaurant._id })
       .populate('category')
       .sort({ $expr: { $multiply: ['$currentStock', '$unitPrice'] } })
       .limit(10);

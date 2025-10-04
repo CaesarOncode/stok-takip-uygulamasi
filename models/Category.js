@@ -4,9 +4,13 @@ const categorySchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Kategori adı gereklidir'],
-    unique: true,
     trim: true,
     maxlength: [50, 'Kategori adı 50 karakterden fazla olamaz']
+  },
+  restaurant: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Restaurant',
+    required: [true, 'Restoran referansı gereklidir']
   },
   description: {
     type: String,
@@ -42,5 +46,8 @@ categorySchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
+
+// Compound unique index: aynı restoranda aynı isimde kategori olamaz
+categorySchema.index({ name: 1, restaurant: 1 }, { unique: true });
 
 module.exports = mongoose.model('Category', categorySchema);

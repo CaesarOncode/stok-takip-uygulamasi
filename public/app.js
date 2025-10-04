@@ -51,6 +51,17 @@ function initializeApp() {
     loadDashboard();
     loadCategories();
     setupLogoutButton();
+    showUserManagementIfAuthorized();
+}
+
+// Show user management link if user has permission
+function showUserManagementIfAuthorized() {
+    if (currentUser && (currentUser.role === 'owner' || currentUser.role === 'manager')) {
+        var usersNavItem = document.getElementById('users-nav-item');
+        if (usersNavItem) {
+            usersNavItem.style.display = 'block';
+        }
+    }
 }
 
 // Update user info in the header

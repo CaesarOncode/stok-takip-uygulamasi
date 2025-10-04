@@ -6,6 +6,11 @@ const stockMovementSchema = new mongoose.Schema({
     ref: 'Product',
     required: [true, 'Ürün gereklidir']
   },
+  restaurant: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Restaurant',
+    required: [true, 'Restoran referansı gereklidir']
+  },
   type: {
     type: String,
     enum: ['giriş', 'çıkış', 'düzeltme', 'fire'],

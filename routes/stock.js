@@ -2,13 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const StockMovement = require('../models/StockMovement');
+const { requireAuth } = require('../middleware/auth');
 
 // Stok hareketlerini getir
-router.get('/movements', async (req, res) => {
+router.get('/movements', requireAuth, async (req, res) => {
   try {
     const { product, type, startDate, endDate, page = 1, limit = 50 } = req.query;
     
-    let query = {};
+    let query = {
+      restaurant: req.restaurant._id
+    };
     
     // Ürün filtresi
     if (product) {
@@ -51,17 +54,23 @@ router.get('/movements', async (req, res) => {
 });
 
 // Ürün stok hareketlerini getir
-router.get('/movements/:productId', async (req, res) => {
+router.get('/movements/:productId', requireAuth, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     
-    const movements = await StockMovement.find({ product: req.params.productId })
+    const movements = await StockMovement.find({ 
+      product: req.params.productId,
+      restaurant: req.restaurant._id
+    })
       .populate('product')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    const total = await StockMovement.countDocuments({ product: req.params.productId });
+    const total = await StockMovement.countDocuments({ 
+      product: req.params.productId,
+      restaurant: req.restaurant._id
+    });
     
     res.json({
       movements,
@@ -75,7 +84,7 @@ router.get('/movements/:productId', async (req, res) => {
 });
 
 // Stok girişi
-router.post('/in', async (req, res) => {
+router.post('/in', requireAuth, async (req, res) => {
   try {
     const { productId, quantity, unitPrice, supplier, invoiceNumber, reason, user = 'Sistem' } = req.body;
     
@@ -83,7 +92,10 @@ router.post('/in', async (req, res) => {
       return res.status(400).json({ message: 'Geçerli ürün ve miktar gereklidir' });
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findOne({
+      _id: productId,
+      restaurant: req.restaurant._id
+    });
     if (!product) {
       return res.status(404).json({ message: 'Ürün bulunamadı' });
     }
@@ -94,6 +106,7 @@ router.post('/in', async (req, res) => {
     // Stok hareketi oluştur
     const stockMovement = new StockMovement({
       product: productId,
+      restaurant: req.restaurant._id,
       type: 'giriş',
       quantity,
       previousStock,
@@ -125,7 +138,7 @@ router.post('/in', async (req, res) => {
 });
 
 // Stok çıkışı
-router.post('/out', async (req, res) => {
+router.post('/out', requireAuth, async (req, res) => {
   try {
     const { productId, quantity, reason, user = 'Sistem' } = req.body;
     
@@ -133,7 +146,10 @@ router.post('/out', async (req, res) => {
       return res.status(400).json({ message: 'Geçerli ürün ve miktar gereklidir' });
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findOne({
+      _id: productId,
+      restaurant: req.restaurant._id
+    });
     if (!product) {
       return res.status(404).json({ message: 'Ürün bulunamadı' });
     }
@@ -151,6 +167,7 @@ router.post('/out', async (req, res) => {
     // Stok hareketi oluştur
     const stockMovement = new StockMovement({
       product: productId,
+      restaurant: req.restaurant._id,
       type: 'çıkış',
       quantity,
       previousStock,
@@ -177,7 +194,7 @@ router.post('/out', async (req, res) => {
 });
 
 // Stok düzeltmesi
-router.post('/adjust', async (req, res) => {
+router.post('/adjust', requireAuth, async (req, res) => {
   try {
     const { productId, newStock, reason, user = 'Sistem' } = req.body;
     
@@ -185,7 +202,10 @@ router.post('/adjust', async (req, res) => {
       return res.status(400).json({ message: 'Geçerli ürün ve stok miktarı gereklidir' });
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findOne({
+      _id: productId,
+      restaurant: req.restaurant._id
+    });
     if (!product) {
       return res.status(404).json({ message: 'Ürün bulunamadı' });
     }
@@ -200,6 +220,7 @@ router.post('/adjust', async (req, res) => {
     // Stok hareketi oluştur
     const stockMovement = new StockMovement({
       product: productId,
+      restaurant: req.restaurant._id,
       type: 'düzeltme',
       quantity: difference,
       previousStock,
@@ -226,21 +247,23 @@ router.post('/adjust', async (req, res) => {
 });
 
 // Stok özeti
-router.get('/summary', async (req, res) => {
+router.get('/summary', requireAuth, async (req, res) => {
   try {
-    const totalProducts = await Product.countDocuments({ isActive: true });
-    const outOfStock = await Product.countDocuments({ isActive: true, currentStock: 0 });
+    const restaurantFilter = { isActive: true, restaurant: req.restaurant._id };
+    
+    const totalProducts = await Product.countDocuments(restaurantFilter);
+    const outOfStock = await Product.countDocuments({ ...restaurantFilter, currentStock: 0 });
     const criticalStock = await Product.countDocuments({ 
-      isActive: true,
+      ...restaurantFilter,
       $expr: { $and: [{ $gt: ['$currentStock', 0] }, { $lte: ['$currentStock', '$minStock'] }] }
     });
     
     const totalValue = await Product.aggregate([
-      { $match: { isActive: true } },
+      { $match: restaurantFilter },
       { $group: { _id: null, total: { $sum: { $multiply: ['$currentStock', '$unitPrice'] } } } }
     ]);
 
-    const recentMovements = await StockMovement.find()
+    const recentMovements = await StockMovement.find({ restaurant: req.restaurant._id })
       .populate('product')
       .sort({ createdAt: -1 })
       .limit(10);

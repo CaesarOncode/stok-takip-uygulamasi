@@ -2,21 +2,28 @@ const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
 const Product = require('../models/Product');
+const { requireAuth } = require('../middleware/auth');
 
-// Tüm kategorileri getir
-router.get('/', async (req, res) => {
+// Tüm kategorileri getir (sadece kullanıcının restoranına ait)
+router.get('/', requireAuth, async (req, res) => {
   try {
-    const categories = await Category.find({ isActive: true }).sort({ name: 1 });
+    const categories = await Category.find({ 
+      restaurant: req.restaurant._id,
+      isActive: true 
+    }).sort({ name: 1 });
     res.json(categories);
   } catch (error) {
     res.status(500).json({ message: 'Kategoriler getirilirken hata oluştu', error: error.message });
   }
 });
 
-// Kategori detayını getir
-router.get('/:id', async (req, res) => {
+// Kategori detayını getir (sadece kullanıcının restoranına ait)
+router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findOne({
+      _id: req.params.id,
+      restaurant: req.restaurant._id
+    });
     if (!category) {
       return res.status(404).json({ message: 'Kategori bulunamadı' });
     }
@@ -27,18 +34,22 @@ router.get('/:id', async (req, res) => {
 });
 
 // Yeni kategori oluştur
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { name, description, type, color } = req.body;
     
-    // Kategori adı kontrolü
-    const existingCategory = await Category.findOne({ name: name.trim() });
+    // Kategori adı kontrolü (aynı restoranda)
+    const existingCategory = await Category.findOne({ 
+      name: name.trim(),
+      restaurant: req.restaurant._id
+    });
     if (existingCategory) {
       return res.status(400).json({ message: 'Bu kategori adı zaten mevcut' });
     }
 
     const category = new Category({
       name: name.trim(),
+      restaurant: req.restaurant._id,
       description: description?.trim(),
       type,
       color: color || '#007bff'
@@ -52,14 +63,15 @@ router.post('/', async (req, res) => {
 });
 
 // Kategori güncelle
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const { name, description, type, color, isActive } = req.body;
     
-    // Kategori adı kontrolü (kendisi hariç)
+    // Kategori adı kontrolü (kendisi hariç, aynı restoranda)
     if (name) {
       const existingCategory = await Category.findOne({ 
         name: name.trim(), 
+        restaurant: req.restaurant._id,
         _id: { $ne: req.params.id } 
       });
       if (existingCategory) {
@@ -67,8 +79,8 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    const category = await Category.findByIdAndUpdate(
-      req.params.id,
+    const category = await Category.findOneAndUpdate(
+      { _id: req.params.id, restaurant: req.restaurant._id },
       {
         ...(name && { name: name.trim() }),
         ...(description !== undefined && { description: description?.trim() }),
@@ -91,17 +103,23 @@ router.put('/:id', async (req, res) => {
 });
 
 // Kategori sil
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    // Kategoriye ait ürün var mı kontrol et
-    const productsCount = await Product.countDocuments({ category: req.params.id });
+    // Kategoriye ait ürün var mı kontrol et (aynı restoranda)
+    const productsCount = await Product.countDocuments({ 
+      category: req.params.id,
+      restaurant: req.restaurant._id
+    });
     if (productsCount > 0) {
       return res.status(400).json({ 
         message: `Bu kategoriye ait ${productsCount} ürün bulunmaktadır. Önce ürünleri silin veya başka kategoriye taşıyın.` 
       });
     }
 
-    const category = await Category.findByIdAndDelete(req.params.id);
+    const category = await Category.findOneAndDelete({
+      _id: req.params.id,
+      restaurant: req.restaurant._id
+    });
     if (!category) {
       return res.status(404).json({ message: 'Kategori bulunamadı' });
     }
@@ -113,9 +131,13 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Kategoriye göre ürün sayısını getir
-router.get('/:id/products/count', async (req, res) => {
+router.get('/:id/products/count', requireAuth, async (req, res) => {
   try {
-    const count = await Product.countDocuments({ category: req.params.id, isActive: true });
+    const count = await Product.countDocuments({ 
+      category: req.params.id, 
+      restaurant: req.restaurant._id,
+      isActive: true 
+    });
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: 'Ürün sayısı getirilirken hata oluştu', error: error.message });

@@ -2,13 +2,17 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const StockMovement = require('../models/StockMovement');
+const { requireAuth } = require('../middleware/auth');
 
 // Tüm ürünleri getir
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { category, search, stockStatus, page = 1, limit = 50 } = req.query;
     
-    let query = { isActive: true };
+    let query = { 
+      isActive: true,
+      restaurant: req.restaurant._id
+    };
     
     // Kategori filtresi
     if (category) {
@@ -53,9 +57,12 @@ router.get('/', async (req, res) => {
 });
 
 // Ürün detayını getir
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('category');
+    const product = await Product.findOne({
+      _id: req.params.id,
+      restaurant: req.restaurant._id
+    }).populate('category');
     if (!product) {
       return res.status(404).json({ message: 'Ürün bulunamadı' });
     }
@@ -66,25 +73,32 @@ router.get('/:id', async (req, res) => {
 });
 
 // Yeni ürün oluştur
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const productData = req.body;
     
-    // Barcode kontrolü
+    // Barcode kontrolü (aynı restoranda)
     if (productData.barcode) {
-      const existingProduct = await Product.findOne({ barcode: productData.barcode });
+      const existingProduct = await Product.findOne({ 
+        barcode: productData.barcode,
+        restaurant: req.restaurant._id
+      });
       if (existingProduct) {
         return res.status(400).json({ message: 'Bu barkod zaten mevcut' });
       }
     }
 
-    const product = new Product(productData);
+    const product = new Product({
+      ...productData,
+      restaurant: req.restaurant._id
+    });
     const savedProduct = await product.save();
     
     // İlk stok girişi varsa stok hareketi oluştur
     if (savedProduct.currentStock > 0) {
       const stockMovement = new StockMovement({
         product: savedProduct._id,
+        restaurant: req.restaurant._id,
         type: 'giriş',
         quantity: savedProduct.currentStock,
         previousStock: 0,
@@ -103,14 +117,15 @@ router.post('/', async (req, res) => {
 });
 
 // Ürün güncelle
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const productData = req.body;
     
-    // Barcode kontrolü (kendisi hariç)
+    // Barcode kontrolü (kendisi hariç, aynı restoranda)
     if (productData.barcode) {
       const existingProduct = await Product.findOne({ 
-        barcode: productData.barcode, 
+        barcode: productData.barcode,
+        restaurant: req.restaurant._id,
         _id: { $ne: req.params.id } 
       });
       if (existingProduct) {
@@ -118,8 +133,8 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
+    const product = await Product.findOneAndUpdate(
+      { _id: req.params.id, restaurant: req.restaurant._id },
       { ...productData, updatedAt: Date.now() },
       { new: true, runValidators: true }
     ).populate('category');
@@ -135,9 +150,12 @@ router.put('/:id', async (req, res) => {
 });
 
 // Ürün sil
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findOneAndDelete({
+      _id: req.params.id,
+      restaurant: req.restaurant._id
+    });
     if (!product) {
       return res.status(404).json({ message: 'Ürün bulunamadı' });
     }
@@ -149,10 +167,11 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Kritik stok ürünlerini getir
-router.get('/alerts/critical', async (req, res) => {
+router.get('/alerts/critical', requireAuth, async (req, res) => {
   try {
     const products = await Product.find({ 
       isActive: true,
+      restaurant: req.restaurant._id,
       $expr: { $lte: ['$currentStock', '$minStock'] }
     }).populate('category').sort({ currentStock: 1 });
 
@@ -163,10 +182,11 @@ router.get('/alerts/critical', async (req, res) => {
 });
 
 // Tükenen ürünleri getir
-router.get('/alerts/out-of-stock', async (req, res) => {
+router.get('/alerts/out-of-stock', requireAuth, async (req, res) => {
   try {
     const products = await Product.find({ 
       isActive: true,
+      restaurant: req.restaurant._id,
       currentStock: 0
     }).populate('category').sort({ name: 1 });
 

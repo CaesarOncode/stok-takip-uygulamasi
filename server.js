@@ -26,7 +26,7 @@ app.use(session({
     touchAfter: 24 * 3600 // lazy session update
   }),
   cookie: {
-    secure: false, // true for HTTPS
+    secure: process.env.NODE_ENV === 'production', // true for HTTPS in production
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
   }
@@ -54,6 +54,7 @@ app.use('/api/categories', requireAuth, require('./routes/categories'));
 app.use('/api/products', requireAuth, require('./routes/products'));
 app.use('/api/stock', requireAuth, require('./routes/stock'));
 app.use('/api/reports', requireAuth, require('./routes/reports'));
+app.use('/api/users', requireAuth, require('./routes/users'));
 
 // Frontend için ana route
 app.get('/', optionalAuth, (req, res) => {
@@ -73,9 +74,25 @@ app.get('/register.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
-// Diğer tüm route'lar için authentication kontrolü
-app.get('*', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// HTML sayfaları için authentication kontrolü
+app.get('/users.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'users.html'));
+});
+
+app.get('/products.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'products.html'));
+});
+
+app.get('/categories.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'categories.html'));
+});
+
+app.get('/stock.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'stock.html'));
+});
+
+app.get('/reports.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'reports.html'));
 });
 
 // Error handling middleware
