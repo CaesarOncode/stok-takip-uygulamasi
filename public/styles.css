@@ -74,6 +74,22 @@ body {
   backdrop-filter: blur(8px);
 }
 
+.user-info {
+    color: #5d4037;
+    text-align: right;
+    font-size: 0.85rem;
+}
+
+.user-info .restaurant-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.user-info .user-name {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
 .navbar-brand {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 600;
@@ -132,6 +148,26 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
   text-shadow: none;
+}
+
+/* Logout Button Styling */
+#logoutBtn {
+  background: linear-gradient(135deg, #8d6e63, #6d4c41);
+  border: 1px solid #6d4c41;
+  color: white !important;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+#logoutBtn:hover {
+  background: linear-gradient(135deg, #6d4c41, #5d4037);
+  border-color: #5d4037;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  color: white !important;
 }
 
 /* Railway-Style Page Content */

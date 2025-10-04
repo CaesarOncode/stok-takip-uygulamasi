@@ -2,14 +2,35 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 require('dotenv').config();
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'stok-takip-secret-key-2024',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/stok_takip',
+    touchAfter: 24 * 3600 // lazy session update
+  }),
+  cookie: {
+    secure: false, // true for HTTPS
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+  }
+}));
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -24,14 +45,36 @@ mongoose.connect(MONGODB_URI, {
 .then(() => console.log('MongoDB bağlantısı başarılı'))
 .catch(err => console.error('MongoDB bağlantı hatası:', err));
 
+// Import middleware
+const { requireAuth, optionalAuth } = require('./middleware/auth');
+
 // Routes
-app.use('/api/categories', require('./routes/categories'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/stock', require('./routes/stock'));
-app.use('/api/reports', require('./routes/reports'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/categories', requireAuth, require('./routes/categories'));
+app.use('/api/products', requireAuth, require('./routes/products'));
+app.use('/api/stock', requireAuth, require('./routes/stock'));
+app.use('/api/reports', requireAuth, require('./routes/reports'));
 
 // Frontend için ana route
-app.get('*', (req, res) => {
+app.get('/', optionalAuth, (req, res) => {
+  // Eğer kullanıcı giriş yapmamışsa login sayfasına yönlendir
+  if (!req.user) {
+    return res.sendFile(path.join(__dirname, 'public', 'login.html'));
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Login ve register sayfaları için özel route'lar
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/register.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
+
+// Diğer tüm route'lar için authentication kontrolü
+app.get('*', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

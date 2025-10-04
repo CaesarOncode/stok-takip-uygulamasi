@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restoran Kayıt - Stok Takip</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #efebe9 30%, #d7ccc8 70%, #bcaaa4 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(93, 64, 55, 0.15);
+            border: 1px solid rgba(215, 204, 200, 0.3);
+            overflow: hidden;
+            width: 100%;
+            max-width: 500px;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .register-header {
+            background: linear-gradient(135deg, #8d6e63 0%, #6d4c41 50%, #5d4037 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .register-header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .register-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .register-form {
+            padding: 30px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #efebe9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #8d6e63;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(141, 110, 99, 0.1);
+        }
+
+        .register-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #8d6e63 0%, #6d4c41 50%, #5d4037 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .register-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(93, 64, 55, 0.4);
+            background: linear-gradient(135deg, #6d4c41 0%, #5d4037 50%, #4e342e 100%);
+        }
+
+        .register-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .login-link a {
+            color: #8d6e63;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        @media (max-width: 480px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .register-container {
+                margin: 10px;
+            }
+            
+            .register-form {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <h1><i class="fas fa-utensils"></i> Restoran Kayıt</h1>
+            <p>Stok Takip Sistemine Katılın</p>
+        </div>
+        
+        <div class="register-form">
+            <div id="alertContainer"></div>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="restaurantName">Restoran Adı *</label>
+                    <input type="text" id="restaurantName" name="restaurantName" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ownerFirstName">Adınız *</label>
+                        <input type="text" id="ownerFirstName" name="ownerFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ownerLastName">Soyadınız *</label>
+                        <input type="text" id="ownerLastName" name="ownerLastName" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">E-posta Adresi *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Telefon Numarası *</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Şifre *</label>
+                        <input type="password" id="password" name="password" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Şifre Tekrar *</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address">Adres</label>
+                    <input type="text" id="address" name="address" placeholder="Restoran adresi">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city">Şehir</label>
+                        <input type="text" id="city" name="city">
+                    </div>
+                    <div class="form-group">
+                        <label for="plan">Plan</label>
+                        <select id="plan" name="plan">
+                            <option value="basic">Temel Plan (Ücretsiz)</option>
+                            <option value="premium">Premium Plan</option>
+                            <option value="enterprise">Kurumsal Plan</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="register-btn" id="registerBtn">
+                    <i class="fas fa-user-plus"></i> Kayıt Ol
+                </button>
+            </form>
+            
+            <div class="login-link">
+                <p>Zaten hesabınız var mı? <a href="login.html">Giriş Yap</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="register.js"></script>
+</body>
+</html>

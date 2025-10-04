@@ -1,25 +1,106 @@
 // Stock Management System JavaScript
 
 // API Base URL - Dinamik olarak ayarlanıyor
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+var API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
     ? '/api' 
     : '/api';
-let currentPage = 'dashboard';
-let categories = [];
-let products = [];
+var currentPage = 'dashboard';
+var categories = [];
+var products = [];
+var currentUser = null;
+var currentRestaurant = null;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
+    checkAuthentication();
+});
+
+// Check if user is authenticated
+function checkAuthentication() {
+    fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(function(response) {
+        if (response.status === 401) {
+            window.location.href = '/login.html';
+            return;
+        }
+        return response.json();
+    })
+    .then(function(data) {
+        if (data && data.success) {
+            currentUser = data.data.user;
+            currentRestaurant = data.data.restaurant;
+            initializeApp();
+        } else {
+            window.location.href = '/login.html';
+        }
+    })
+    .catch(function(error) {
+        console.error('Auth check error:', error);
+        window.location.href = '/login.html';
+    });
+}
+
+// Initialize app after authentication
+function initializeApp() {
+    updateUserInfo();
     updateTime();
     setInterval(updateTime, 1000);
     loadDashboard();
     loadCategories();
-});
+    setupLogoutButton();
+}
+
+// Update user info in the header
+function updateUserInfo() {
+    if (currentUser && currentRestaurant) {
+        var userInfoElement = document.querySelector('.user-info');
+        if (userInfoElement) {
+            userInfoElement.innerHTML = 
+                '<div class="restaurant-name">' + currentRestaurant.name + '</div>' +
+                '<div class="user-name">' + currentUser.fullName + ' (' + currentUser.role + ')</div>';
+        }
+    }
+}
+
+// Setup logout button
+function setupLogoutButton() {
+    var logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            logout();
+        });
+    }
+}
+
+// Logout function
+function logout() {
+    fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            window.location.href = '/login.html';
+        } else {
+            showNotification('Çıkış yapılırken hata oluştu.', 'error');
+        }
+    })
+    .catch(function(error) {
+        console.error('Logout error:', error);
+        window.location.href = '/login.html';
+    });
+}
 
 // Update current time
 function updateTime() {
-    const now = new Date();
-    const timeString = now.toLocaleString('tr-TR', {
+    var now = new Date();
+    var timeString = now.toLocaleString('tr-TR', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -31,16 +112,15 @@ function updateTime() {
 }
 
 // Show notification
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} notification`;
-    notification.innerHTML = `
-        <strong>${type === 'success' ? 'Başarılı!' : 'Hata!'}</strong> ${message}
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
+function showNotification(message, type) {
+    if (type === undefined) type = 'success';
+    var notification = document.createElement('div');
+    notification.className = 'alert alert-' + type + ' notification';
+    notification.innerHTML = '<strong>' + (type === 'success' ? 'Başarılı!' : 'Hata!') + '</strong> ' + message +
+        '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
     document.body.appendChild(notification);
     
-    setTimeout(() => {
+    setTimeout(function() {
         if (notification.parentElement) {
             notification.remove();
         }
@@ -65,30 +145,48 @@ function hideLoading() {
 }
 
 // API request helper
-async function apiRequest(url, options = {}) {
-    try {
+function apiRequest(url, options) {
+    if (options === undefined) options = {};
+    return new Promise(function(resolve, reject) {
         showLoading();
-        const response = await fetch(API_BASE + url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Bir hata oluştu');
+        var headers = {
+            'Content-Type': 'application/json'
+        };
+        if (options.headers) {
+            for (var key in options.headers) {
+                headers[key] = options.headers[key];
+            }
         }
         
-        return data;
-    } catch (error) {
-        showNotification(error.message, 'danger');
-        throw error;
-    } finally {
-        hideLoading();
-    }
+        var fetchOptions = {
+            headers: headers
+        };
+        for (var key in options) {
+            if (key !== 'headers') {
+                fetchOptions[key] = options[key];
+            }
+        }
+        
+        fetch(API_BASE + url, fetchOptions)
+            .then(function(response) {
+                return response.json().then(function(data) {
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Bir hata oluştu');
+                    }
+                    return data;
+                });
+            })
+            .then(function(data) {
+                hideLoading();
+                resolve(data);
+            })
+            .catch(function(error) {
+                hideLoading();
+                showNotification(error.message, 'danger');
+                reject(error);
+            });
+    });
 }
 
 // Page navigation
