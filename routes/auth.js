@@ -184,25 +184,36 @@ router.post('/login', async (req, res) => {
         req.session.restaurantId = user.restaurant._id;
         req.session.userRole = user.role;
 
-        res.json({
-            success: true,
-            message: 'Giriş başarılı.',
-            data: {
-                user: {
-                    id: user._id,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role,
-                    fullName: user.fullName,
-                    permissions: user.permissions
-                },
-                restaurant: {
-                    id: user.restaurant._id,
-                    name: user.restaurant.name,
-                    slug: user.restaurant.slug,
-                    plan: user.restaurant.subscription.plan
-                }
+        // Session'ı kaydet ve sonra response gönder
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Session kaydedilemedi.'
+                });
             }
+
+            res.json({
+                success: true,
+                message: 'Giriş başarılı.',
+                data: {
+                    user: {
+                        id: user._id,
+                        username: user.username,
+                        email: user.email,
+                        role: user.role,
+                        fullName: user.fullName,
+                        permissions: user.permissions
+                    },
+                    restaurant: {
+                        id: user.restaurant._id,
+                        name: user.restaurant.name,
+                        slug: user.restaurant.slug,
+                        plan: user.restaurant.subscription.plan
+                    }
+                }
+            });
         });
 
     } catch (error) {

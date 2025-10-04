@@ -86,10 +86,10 @@ loginForm.addEventListener('submit', function(e) {
         if (result.status === 200) {
             showToast('Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
             
-            // 1.5 saniye sonra ana sayfaya yönlendir
+            // 2 saniye sonra ana sayfaya yönlendir (session'ın kaydedilmesi için biraz daha bekle)
             setTimeout(function() {
-                window.location.href = '/';
-            }, 1500);
+                window.location.href = '/index.html';
+            }, 2000);
         } else {
             showToast(result.data.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.', 'error');
         }

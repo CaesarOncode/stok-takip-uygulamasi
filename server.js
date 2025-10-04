@@ -26,10 +26,12 @@ app.use(session({
     touchAfter: 24 * 3600 // lazy session update
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true for HTTPS in production
+    secure: false, // Railway'de HTTPS proxy kullanıldığı için false yapıyoruz
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
-  }
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    sameSite: 'lax' // CSRF koruması için
+  },
+  rolling: true // Her istekte session süresini yenile
 }));
 
 // Static files
@@ -62,6 +64,11 @@ app.get('/', optionalAuth, (req, res) => {
   if (!req.user) {
     return res.sendFile(path.join(__dirname, 'public', 'login.html'));
   }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Index.html için direkt route (authentication gerekli)
+app.get('/index.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
